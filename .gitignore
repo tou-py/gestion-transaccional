@@ -1,0 +1,39 @@
+# Archivos y directorios ignorados por Git
+
+# Entorno virtual
+.venv/
+venv/
+env/
+*.pyc
+__pycache__/
+
+# Archivos de base de datos
+*.sqlite3
+db.sqlite3
+
+# Archivos de logs
+*.log
+
+# Directorios de medios y estáticos generados
+/media/
+/static_collected/
+
+.env
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Archivos temporales del sistema operativo
+.DS_Store # macOS
+Thumbs.db # Windows
+
+# Archivos de cobertura de pruebas
+.coverage
+htmlcov/
+
+# Archivos de PyInstaller o similares
+dist/
+build/
