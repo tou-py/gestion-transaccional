@@ -1,6 +1,7 @@
 import pathlib
 from typing import Any
 import decouple
+from datetime import timedelta
 
 from apps import accounts
 
@@ -31,6 +32,8 @@ PROJECT_APPS: list[str] = [
 
 THIRD_PARTY_APPS: list[str] = [
     'rest_framework',
+    'drf_spectacular',
+    'drf_spectacular_sidecar'
 ]
 
 INSTALLED_APPS: list[Any] = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
@@ -38,7 +41,30 @@ INSTALLED_APPS: list[Any] = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS
 REST_FRAMEWORK: dict[str, Any] = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly'
-    ]
+    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+SIMPLE_JWT: dict[str, Any] = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
+    "ROTATE_REFRESH_TOKENS": False,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+SPECTACULAR_SETTINGS: dict[str, Any] = {
+    'TITLE': 'Gestion de Transacciones',
+    'DESCRIPTION': 'API dedicada a ayudar a usuarios a controlar sus transacciones por medio de registros y análisis',
+    'VERSION': '1.0.0',
+    'SERVER_INCLUDE_SCHEMA': False,
+    'AUTH_HEADER_TYPES': ("Bearer",),
+    'SWAGGER_UI_DIST': 'SIDECAR',
+    'SWAGGER_UI_FAVICON_HREF': 'SIDECAR',
+    'REDOC_DIST': 'SIDECAR',
 }
 
 MIDDLEWARE: list[str] = [
