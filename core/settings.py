@@ -1,7 +1,9 @@
+import os
 import pathlib
-from typing import Any
-import decouple
 from datetime import timedelta
+from typing import Any
+
+import decouple
 
 from apps import accounts
 
@@ -24,7 +26,7 @@ DJANGO_APPS: list[str] = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    ]
+]
 
 PROJECT_APPS: list[str] = [
     'apps.accounts.apps.AccountsConfig',
@@ -97,7 +99,6 @@ TEMPLATES: list[dict[str, Any]] = [
 
 WSGI_APPLICATION: str = 'core.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
@@ -107,7 +108,6 @@ DATABASES: dict[str, Any] = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -127,7 +127,6 @@ AUTH_PASSWORD_VALIDATORS: list[dict[str, Any]] = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
@@ -139,11 +138,16 @@ USE_I18N: bool = True
 
 USE_TZ: bool = True
 
-
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+STATIC_LOCATION: str = 'static'
 STATIC_URL: str = 'static/'
+STATIC_ROOT: str = os.path.join(BASE_DIR / 'static')
+
+MEDIA_LOCATION: str = 'media'
+MEDIA_URL: str = 'media/'
+MEDIA_ROOT: str = os.path.join(BASE_DIR / 'media')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

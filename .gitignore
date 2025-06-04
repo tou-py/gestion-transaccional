@@ -17,6 +17,7 @@ db.sqlite3
 # Directorios de medios y estáticos generados
 /media/
 /static_collected/
+/static/
 
 .env
 
