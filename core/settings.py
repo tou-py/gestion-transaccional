@@ -5,7 +5,7 @@ from typing import Any
 
 import decouple
 
-from apps import accounts
+from apps import accounts # type: ignore
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
@@ -97,6 +97,7 @@ TEMPLATES: list[dict[str, Any]] = [
     },
 ]
 
+ASGI_APPLICATION: str = 'core.asgi.application'
 WSGI_APPLICATION: str = 'core.wsgi.application'
 
 # Database
@@ -104,8 +105,12 @@ WSGI_APPLICATION: str = 'core.wsgi.application'
 
 DATABASES: dict[str, Any] = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': decouple.config('DB_NAME', cast=str),
+        'USER': decouple.config('DB_USER', cast=str),
+        'PASSWORD': decouple.config('DB_PASSWORD', cast=str),
+        'HOST': decouple.config('DB_HOST', cast=str),
+        'PORT': decouple.config('DB_PORT', cast=int),
     }
 }
 
