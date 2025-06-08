@@ -50,6 +50,17 @@ REST_FRAMEWORK: dict[str, Any] = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+# Configuración de envio de Emails
+EMAIL_BACKEND: str = 'django.core.mail.backends.console.EmailBackend'
+# TODO: Configurar los siguientes parámetros al entrar a producción
+# EMAIL_BACKEND: str = 'django.core.email.smtp. EmailBackend'
+# EMAIL_HOST: str = decouple.config('EMAIL_HOST')
+# EMAIL_PORT: int = decouple.config('EMAIL_PORT', cast=int)
+# EMAIL_HOST_USER: str = decouple.config('EMAIL_USER')
+# EMAIL_HOST_PASSWORD: str = decouple.config('EMAIL_PASSWORD')
+# EMAIL_USE_TLS: bool = True
+
+
 SIMPLE_JWT: dict[str, Any] = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
@@ -96,6 +107,9 @@ TEMPLATES: list[dict[str, Any]] = [
         },
     },
 ]
+
+# Definir el tiempo de validez del link de recuperación de contraseñas
+PASSWORD_RESET_TIMEOUT: int = 60 * 60 * 24
 
 ASGI_APPLICATION: str = 'core.asgi.application'
 WSGI_APPLICATION: str = 'core.wsgi.application'

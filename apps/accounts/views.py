@@ -1,9 +1,14 @@
+from http.client import responses
+
 from django.contrib.auth import get_user_model
-from rest_framework import viewsets, permissions, filters
+from django.http import HttpRequest
+from rest_framework import viewsets, permissions, filters, status
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from rest_framework.response import Response
-
-from .serializers import UserSerializer
+from rest_framework.views import APIView
+from .serializers import UserSerializer, PasswordResetConfirmSerializer, PasswordResetConfirmSerializer, \
+    PasswordResetRequestSerializer
 
 User = get_user_model()
 
@@ -42,3 +47,27 @@ class UserViewSet(viewsets.ModelViewSet):
         """Endpoint para obtener datos del usuario autenticado."""
         serializer = self.get_serializer(request.user)
         return Response(serializer.data)
+
+
+class PasswordRequestView(APIView):
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        serializer = PasswordResetRequestSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({'detail': 'Si el correo existe, recibirás instrucciones para resetear la contraseña.'}, status=status.HTTP_200_OK)
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [AllowAny]
+
+    def post(request):
+        serializer = PasswordResetConfirmSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {'detail': 'Contraseña restablecida correctamente.'},
+            status=status.HTTP_200_OK
+        )
