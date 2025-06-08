@@ -1,10 +1,10 @@
-from rest_framework.views import APIView
+from django.core.cache import caches
+from django.db import connection
+from django.utils import timezone
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
-from rest_framework import status
-from django.db import connection
-from django.core.cache import caches
-from django.utils import timezone
+from rest_framework.views import APIView
 
 
 class APIRootView(APIView):
@@ -13,6 +13,7 @@ class APIRootView(APIView):
     """
     authentication_classes = []
     permission_classes = []
+    serializer_class = None
 
     @staticmethod
     def get(request):
@@ -30,12 +31,14 @@ class APIRootView(APIView):
             'status': 'operational'
         })
 
+
 class HealthCheckView(APIView):
     """
     Endpoint de verificación del estado del sistema
     """
     authentication_classes = []
     permission_classes = []
+    serializer_class = None
 
     def get(self, request):
         # Verificar estado de la base de datos
