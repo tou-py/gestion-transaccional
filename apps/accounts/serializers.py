@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional, Dict
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
@@ -14,7 +14,12 @@ User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Serializer para operaciones CRUD de usuarios."""
+    """
+    Serializer para operaciones CRUD de usuarios.
+
+    Maneja la creación y actualización de usuarios con validación de contraseñas
+    y unicidad de email.
+    """
 
     password = serializers.CharField(write_only=True, required=False)
     password_confirm = serializers.CharField(write_only=True, required=False)
@@ -31,9 +36,21 @@ class UserSerializer(serializers.ModelSerializer):
             'password_confirm': {'write_only': True}
         }
 
-    def validate_email(self, value):
-        """Validar email único."""
+    def validate_email(self, value: str) -> str:
+        """
+        Validar email único.
+
+        Args:
+            value (str): Email de usuario.
+
+        Returns:
+            str: Email normalizado del usuario.
+
+        Raises:
+            ValidationError: El email no es validado.
+        """
         email = value.lower()
+
         if self.instance:
             if self.instance.email.lower() == email:
                 return email
@@ -44,8 +61,19 @@ class UserSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Ya existe un usuario con ese correo.")
         return email
 
-    def validate(self, attrs):
-        """Validar contraseñas si se proporcionan."""
+    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validar contraseñas si se proporcionan.
+
+        Args:
+            attrs (dict): Datos del usuario.
+
+        Returns:
+            dict: Datos del usuario serializados.
+
+        Raises:
+            ValidationError: Si las contraseñas presentan errores
+        """
         password = attrs.get('password')
         password_confirm = attrs.get('password_confirm')
 
@@ -54,20 +82,41 @@ class UserSerializer(serializers.ModelSerializer):
 
         if password or password_confirm:
             if password != password_confirm:
-                raise serializers.ValidationError({'password_confirm': 'Las contraseñas no coinciden.'})
-            validate_password(password)
+                raise serializers.ValidationError({
+                    'password_confirm': 'Las contraseñas no coinciden.'
+                })
+
+            if password:
+                validate_password(password)
 
         attrs.pop('password_confirm', None)
         return attrs
 
-    def create(self, validated_data):
-        """Crear usuario con contraseña encriptada."""
+    def create(self, validated_data: Dict[str, Any]) -> User:
+        """
+        Crear usuario con contraseña encriptada.
+
+        Args:
+            validated_data: Datos validados
+
+        Returns:
+            Usuario creado
+        """
         password = validated_data.pop('password')
         user = User.objects.create_user(password=password, **validated_data)
         return user
 
-    def update(self, instance, validated_data):
-        """Actualizar usuario, incluyendo contraseña si se proporciona."""
+    def update(self, instance: User, validated_data: Dict[str, Any]) -> User:
+        """
+        Actualizar usuario, incluyendo contraseña si se proporciona.
+
+        Args:
+            instance: Instancia del usuario a actualizar
+            validated_data: Datos validados
+
+        Returns:
+            Usuario actualizado
+        """
         password = validated_data.pop('password', None)
         user = super().update(instance, validated_data)
         if password:
@@ -77,15 +126,36 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class PasswordResetRequestSerializer(serializers.Serializer):
+    """
+    Serializer para solicitar reestablecimiento de contraseña
+    Maneja el envío de email de reset
+    """
+
     email = serializers.EmailField()
 
     @staticmethod
     def validate_email(value: str) -> str:
+        """
+        Normalizar el email a minúsculas
+
+        Args:
+            value (str): Valor de email
+
+        Returns:
+            str: Valor de email
+        """
         return value.lower()
 
-    def save(self)->dict:
+    def save(self)->Dict[str, Any]:
+        """
+        Enviar email de reestablecimiento.
+
+        Returns:
+            dict: Por compatibilidad
+        """
         request: HttpRequest = self.context['request']
         form = PasswordResetForm(data=self.validated_data)
+
         if form.is_valid():
             form.save(
                 subject_template_name='registration/password_reset_subject.txt',
@@ -100,22 +170,32 @@ class PasswordResetRequestSerializer(serializers.Serializer):
 
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    def __init__(self, instance=None, data=None):
-        super().__init__(instance, data)
-        self.user = None
+    """
+    Serializer para confirmar el reestablecimiento.
 
+    Valída el token y UID, actualiza la contraseña del usuario.
+    """
     uidb64 = serializers.CharField()
     token = serializers.CharField()
     new_password = serializers.CharField(write_only=True, required=False)
 
-
-    @staticmethod
-    def validate_new_password(value: str):
-        from django.contrib.auth.password_validation import validate_password
-        validate_password(value)
-        return value
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.user: Optional[User] = None
 
     def validate(self, attrs: dict[Any, Any]) -> dict:
+        """
+        Validar UID y token de reestablecimiento.
+
+        Args:
+            attrs (dict): Datos del usuario
+
+        Returns:
+            dict: Datos del usuario
+
+        Raises:
+            ValidationError: Si el token no cumple los requisitos
+        """
         try:
             uid = force_str(urlsafe_base64_decode(attrs['uidb64']))
             self.user = User.objects.get(pk=uid)
@@ -127,7 +207,32 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
         return attrs
 
-    def save(self)->dict:
+    def save(self)->User:
+        """
+        Guardar la nueva contraseña del usuario.
+
+        Returns:
+            User: Usuario con contraseña actualizada.
+        :return:
+        """
         self.user.set_password(self.validated_data['new_password'])
         self.user.save()
         return self.user
+
+
+def validate_new_password(value: str):
+    """
+    Validar la nueva contraseña
+
+    Args:
+        value (str): Nueva contraseña
+
+    Returns:
+        str: Contraseña validada
+
+    Raises:
+        ValidationError: Si la contraseña no cumple los requisitos
+    """
+    from django.contrib.auth.password_validation import validate_password
+    validate_password(value)
+    return value
