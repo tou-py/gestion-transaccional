@@ -5,7 +5,7 @@ from typing import Any
 
 import decouple
 
-from apps import accounts # type: ignore
+from apps import accounts  # type: ignore
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = pathlib.Path(__file__).resolve().parent.parent
@@ -30,6 +30,7 @@ DJANGO_APPS: list[str] = [
 
 PROJECT_APPS: list[str] = [
     'apps.accounts.apps.AccountsConfig',
+    'apps.transactions.apps.TransactionsConfig',
 ]
 
 THIRD_PARTY_APPS: list[str] = [
