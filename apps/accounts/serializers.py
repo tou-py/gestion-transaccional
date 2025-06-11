@@ -1,14 +1,14 @@
 from typing import Any, Optional, Dict
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.password_validation import validate_password
-from rest_framework import serializers
-from django.http import HttpRequest
 from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import default_token_generator
+from django.http import HttpRequest
 from django.utils.encoding import force_str
 from django.utils.http import urlsafe_base64_decode
-from django.contrib.auth.tokens import default_token_generator
-from django.conf import settings
-
+from rest_framework import serializers
 
 User = get_user_model()
 
@@ -66,10 +66,10 @@ class UserSerializer(serializers.ModelSerializer):
         Validar contraseñas si se proporcionan.
 
         Args:
-            attrs (dict): Datos del usuario.
+            attrs (Dict): Datos del usuario.
 
         Returns:
-            dict: Datos del usuario serializados.
+            Dict: Datos del usuario serializados.
 
         Raises:
             ValidationError: Si las contraseñas presentan errores
@@ -103,7 +103,7 @@ class UserSerializer(serializers.ModelSerializer):
             Usuario creado
         """
         password = validated_data.pop('password')
-        user = User.objects.create_user(password=password, **validated_data)
+        user = User.objects.create(password=password, **validated_data)
         return user
 
     def update(self, instance: User, validated_data: Dict[str, Any]) -> User:
@@ -146,12 +146,12 @@ class PasswordResetRequestSerializer(serializers.Serializer):
         """
         return value.lower()
 
-    def save(self)->Dict[str, Any]:
+    def save(self) -> Dict[str, Any]:
         """
         Enviar email de reestablecimiento.
 
         Returns:
-            dict: Por compatibilidad
+            Dict: Por compatibilidad
         """
         request: HttpRequest = self.context['request']
         form = PasswordResetForm(data=self.validated_data)
@@ -183,15 +183,15 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
         super().__init__(*args, **kwargs)
         self.user: Optional[User] = None
 
-    def validate(self, attrs: dict[Any, Any]) -> dict:
+    def validate(self, attrs: Dict[Any, Any]) -> Dict:
         """
         Validar UID y token de reestablecimiento.
 
         Args:
-            attrs (dict): Datos del usuario
+            attrs (Dict): Datos del usuario
 
         Returns:
-            dict: Datos del usuario
+            Dict: Datos del usuario
 
         Raises:
             ValidationError: Si el token no cumple los requisitos
@@ -207,7 +207,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
 
         return attrs
 
-    def save(self)->User:
+    def save(self) -> User:
         """
         Guardar la nueva contraseña del usuario.
 
