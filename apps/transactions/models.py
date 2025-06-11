@@ -2,7 +2,7 @@ import uuid
 from decimal import Decimal
 
 from django.conf import settings
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, ValidationError
 from django.db import models
 
 
@@ -23,9 +23,21 @@ class Account(models.Model):
         verbose_name = 'Cuenta'
         verbose_name_plural = 'Cuentas'
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'name'],
+                name='unique_account_name'
+            )
+        ]
 
     def __str__(self):
-        return f"{self.name} ({self.user.first_name})"
+        return f"{self.name} ({self.user.get_username() or self.user.first_name})"
+
+    def clean(self):
+        if self.name:
+            self.name = self.name.strip()
+        else:
+            raise ValidationError({"name": "El nombre no puede estar vacío"})
 
 
 class Category(models.Model):
@@ -40,7 +52,7 @@ class Category(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='categories')
     name = models.CharField(max_length=100)
-    category_type = models.CharField(max_length=100, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
+    category_type = models.CharField(max_length=10, choices=TYPE_CHOICES, default=TYPE_CHOICES[0][0])
     description = models.TextField(blank=True)
 
     # timestamps
@@ -52,9 +64,50 @@ class Category(models.Model):
         verbose_name_plural = 'Categorias'
         unique_together = [('user', 'name', 'category_type')]
         ordering = ['name', 'category_type']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'name', 'category_type'],
+                name='unique_category_per_user'
+            )
+        ]
 
     def __str__(self):
         return f"{self.name} ({self.get_category_type_display()})"
+
+    def clean(self):
+        if self.name:
+            self.name = self.name.strip()
+        else:
+            raise ValidationError({"name": "El nombre no puede estar vacio"})
+
+
+class Tag(models.Model):
+    """
+    Representa etiquetas para categorizar transacciones
+    """
+    name = models.CharField(max_length=100)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tags')
+
+    class Meta:
+        verbose_name = 'Etiqueta'
+        verbose_name_plural = 'Etiquetas'
+        unique_together = [('user', 'name')]
+        ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'name'],
+                name='unique_tag_per_user'
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name}"
+
+    def clean(self):
+        if self.name:
+            self.name = self.name.strip()
+        else:
+            raise ValidationError({"name": "El nombre no puede estar vacio"})
 
 
 class Transaction(models.Model):
@@ -69,6 +122,7 @@ class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions')
     account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='transactions')
     category = models.ForeignKey(Category, on_delete=models.PROTECT, related_name='transactions')
+    tags = models.ManyToManyField(Tag, related_name='transactions')
 
     amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))],
                                  help_text='El monto debe siempre ser positivo')
@@ -91,14 +145,12 @@ class Transaction(models.Model):
         return f"{tipo} {sign} {self.amount} en {self.account.name} el {self.date.date()}"
 
     def clean(self):
-        """
-        Validaciones adicionales
-            - La categoría y la cuenta deben pertenecer al mismo usuario que la transacción
-        """
-        from django.core.exceptions import ValidationError
+        # Validar que account y category pertenezcan al usuario
+        if self.account_id and self.account.user != self.user:
+            raise ValidationError({'account': 'La cuenta debe pertenecer al usuario.'})
 
-        if self.account.user != self.user_id or self.category.user_id != self.user.id:
-            raise ValidationError("La cuenta y la categoria deben pertenecer al usuario")
+        if self.category_id and self.category.user != self.user:
+            raise ValidationError({'category': 'La categoría debe pertenecer al usuario.'})
 
         super().clean()
 
@@ -125,11 +177,18 @@ class Currency(models.Model):
     symbol = models.CharField(max_length=5)
 
     class Meta:
-        verbose_name = 'Cuenta'
-        verbose_name_plural = 'Cuentas'
+        verbose_name = 'Moneda'
+        verbose_name_plural = 'Monedas'
+        ordering = ['code']
 
     def __str__(self):
         return f"{self.code} - {self.name}"
+
+    def clean(self):
+        if self.code:
+            self.code = self.code.strip()
+        else:
+            raise ValidationError({"code": "El codigo no puede estar vacio"})
 
 
 class ExchangeRate(models.Model):
@@ -144,27 +203,22 @@ class ExchangeRate(models.Model):
     date = models.DateField()
 
     class Meta:
-        verbose_name = 'Cambio'
-        verbose_name_plural = 'Cambios'
+        verbose_name = 'Tasa de cambio'
+        verbose_name_plural = 'Tasas de cambio'
+        ordering = ['-date']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['base_currency', 'target_currency', 'date'],
+                name='unique_exchange_rate_per_date'
+            )
+        ]
 
     def __str__(self):
         return f"{self.base_currency.code} - {self.target_currency.code} @ {self.rate} ({self.date})"
 
-
-class Tag(models.Model):
-    """
-    Representa etiquetas para categorizar transacciones
-    """
-    name = models.CharField(max_length=100)
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='tags')
-
-    class Meta:
-        verbose_name = 'Etiqueta'
-        verbose_name_plural = 'Etiquetas'
-        unique_together = [('user', 'name')]
-
-    def __str__(self):
-        return f"{self.name}"
+    def clean(self):
+        if self.base_currency and self.target_currency and self.base_currency.id == self.target_currency.id:
+            raise ValidationError("La moneda base y destino deben ser diferentes")
 
 
 class Budget(models.Model):
@@ -181,7 +235,21 @@ class Budget(models.Model):
         verbose_name = 'Presupuesto'
         verbose_name_plural = 'Presupuestos'
         unique_together = [('user', 'currency', 'tag', 'month')]
+        ordering = ['-month']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'currency', 'tag', 'month'],
+                name='unique_budget_month_per_user_currency_tag_month'
+            )
+        ]
 
     def __str__(self):
         tag_part = f" Para {self.tag.name}" if self.tag else ""
         return f"{self.user.first_name} - {self.amount} {self.currency.code} en {self.month.strftime('%B %Y')}{tag_part}"
+
+    def clean(self):
+        if self.month and self.month.day != 1:
+            raise ValidationError({"month": "Debe ser el primer dia del mes"})
+
+        if self.tag and self.tag.user != self.user:
+            raise ValidationError({"tag": "La etiqueta debe pertenecer al usuario."})
