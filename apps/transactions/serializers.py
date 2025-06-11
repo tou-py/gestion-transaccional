@@ -31,7 +31,8 @@ class CurrencySerializer(serializers.ModelSerializer):
         fields = ['id', 'code', 'name', 'symbol']
         read_only_fields = ['id']
 
-    def validate(self, value: str) -> str:
+    @staticmethod
+    def validate_code(value: str) -> str:
         return value.strip().upper()
 
 
@@ -46,9 +47,10 @@ class ExchangeRateSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
     @staticmethod
-    def validate_date(value: date) -> None:
-        if value < date.today():
+    def validate_date(value: date) -> Optional[date]:
+        if value > date.today():
             raise serializers.ValidationError('La fecha no puede ser futura')
+        return value
 
     def create(self, validated_data: Dict[str, Any]) -> Optional[ExchangeRate]:
         return ExchangeRateService.create_exchange_rate(validated_data)
@@ -135,9 +137,10 @@ class TransactionSerializer(serializers.ModelSerializer):
                 self.fields['category'].queryset = Category.objects.filter(user=user)
 
     @staticmethod
-    def validate_date(value: date) -> None:
+    def validate_date(value: date) -> Optional[date]:
         if value > timezone.now():
             raise serializers.ValidationError('La fecha no puede ser futura')
+        return value
 
     def create(self, validated_data: Dict[str, Any]) -> Optional[Transaction]:
         user = self.context['request'].user
@@ -154,7 +157,7 @@ class BudgetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Budget
-        fields = ['id', 'currency', 'tag', 'month', 'amount']
+        fields = ['id', 'currency', 'tags', 'month', 'amount']
         read_only_fields = ['id']
 
     def __init__(self, *args, **kwargs):
@@ -165,7 +168,7 @@ class BudgetSerializer(serializers.ModelSerializer):
                 self.fields['tags'].queryset = Tag.objects.filter(user=user)
 
     @staticmethod
-    def validate_moth(value):
+    def validate_month(value):
         if value.day != 1:
             raise serializers.ValidationError('Debe ser el primer dia del mes')
         return value
