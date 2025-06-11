@@ -6,7 +6,28 @@ from django.core.validators import MinValueValidator, ValidationError
 from django.db import models
 
 
-class Account(models.Model):
+class AutoStripMixin(models.Model):
+    """
+    Mixin que aplica .strip() a todos los campos y valida segun blank=False
+    """
+
+    class Meta:
+        abstract = True
+
+    def clean(self):
+        for field in self._meta.get_fields():
+            if isinstance(field, models.CharField):
+                name = field.name
+                value = getattr(self, name)
+                if isinstance(value, str):
+                    stripped = value.strip()
+                    if not field.blank and stripped == "":
+                        raise ValidationError({name: "Este campo no puede quedar vacio tras eliminar espacios"})
+                    setattr(self, name, stripped)
+        super().clean()
+
+
+class Account(AutoStripMixin, models.Model):
     """
     Representa una cuenta o billetera del usuario: ej. efectivo, banco, tarjeta, ahorro, etc.
     """
@@ -40,7 +61,7 @@ class Account(models.Model):
             raise ValidationError({"name": "El nombre no puede estar vacío"})
 
 
-class Category(models.Model):
+class Category(AutoStripMixin, models.Model):
     """
     Categorías para clasificar transacciones
     """
@@ -81,7 +102,7 @@ class Category(models.Model):
             raise ValidationError({"name": "El nombre no puede estar vacio"})
 
 
-class Tag(models.Model):
+class Tag(AutoStripMixin, models.Model):
     """
     Representa etiquetas para categorizar transacciones
     """
@@ -110,7 +131,7 @@ class Tag(models.Model):
             raise ValidationError({"name": "El nombre no puede estar vacio"})
 
 
-class Transaction(models.Model):
+class Transaction(AutoStripMixin, models.Model):
     """
     Registro de una transacción individual
         - amount: siempre positivo; el efecto, ingreso o gasto, se deriva de la categoría.
@@ -168,7 +189,7 @@ class Transaction(models.Model):
         return self.category.category_type == Category.TYPE_CHOICES[1][0]
 
 
-class Currency(models.Model):
+class Currency(AutoStripMixin, models.Model):
     """
     Representa una moneda, ej. USD, EUR
     """
@@ -191,7 +212,7 @@ class Currency(models.Model):
             raise ValidationError({"code": "El codigo no puede estar vacio"})
 
 
-class ExchangeRate(models.Model):
+class ExchangeRate(AutoStripMixin, models.Model):
     """
     Representa el histórico de la tasa de cambio entre dos monedas
     """
@@ -221,7 +242,7 @@ class ExchangeRate(models.Model):
             raise ValidationError("La moneda base y destino deben ser diferentes")
 
 
-class Budget(models.Model):
+class Budget(AutoStripMixin, models.Model):
     """
     Presupuesto mensual por usuario
     """
