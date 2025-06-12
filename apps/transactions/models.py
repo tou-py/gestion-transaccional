@@ -248,18 +248,18 @@ class Budget(AutoStripMixin, models.Model):
     """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='budgets')
     currency = models.ForeignKey(Currency, on_delete=models.CASCADE, related_name='budgets')
-    tag = models.ForeignKey(Tag, null=True, blank=True, on_delete=models.SET_NULL, related_name='budgets')
+    tags = models.ForeignKey(Tag, null=True, blank=True, on_delete=models.SET_NULL, related_name='budgets')
     month = models.DateField(help_text='Primer dia del mes')
     amount = models.DecimalField(max_digits=12, decimal_places=2)
 
     class Meta:
         verbose_name = 'Presupuesto'
         verbose_name_plural = 'Presupuestos'
-        unique_together = [('user', 'currency', 'tag', 'month')]
+        unique_together = [('user', 'currency', 'tags', 'month')]
         ordering = ['-month']
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'currency', 'tag', 'month'],
+                fields=['user', 'currency', 'tags', 'month'],
                 name='unique_budget_month_per_user_currency_tag_month'
             )
         ]
