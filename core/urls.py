@@ -20,6 +20,8 @@ urlpatterns = [
                   path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
                   # Rutas de transacciones
                   path('', include('apps.transactions.urls'), name='transactions'),
+                  # Rutas de analiticas
+                  path('', include('apps.analytics.urls'), name='analytics'),
                   # Rutas para documentación
                   path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
                   # UI opcional
