@@ -56,6 +56,34 @@ class TimeSeriesAggregate:
         ]
 
     @staticmethod
+    def weekly_series(user, start_date: date, weeks: int) -> List[Dict[str, Any]]:
+        """
+        Genera un resumen semanal de balance:
+        - `week_start`: fecha de inicio de la semana (start_date + 7*i días)
+        - `week_end`  : fecha de fin de la semana (6 días después)
+        - `balance`   : suma de signed_amount en ese rango
+        """
+        results: List[Dict[str, Any]] = []
+
+        for i in range(weeks):
+            week_start = start_date + timedelta(days=i * 7)
+            week_end = week_start + timedelta(days=6)
+
+            # Reutilizamos el método genérico para filtrar y anotar signed_amount
+            qs = TimeSeriesAggregate._base_queryset(user, week_start, week_end)
+
+            # Agregación de balance en la semana
+            total = qs.aggregate(week_balance=Sum('signed_amount'))['week_balance'] or 0
+
+            results.append({
+                'week_start': week_start,
+                'week_end': week_end,
+                'balance': float(total),
+            })
+
+        return results
+
+    @staticmethod
     def monthly_series(user, year: int, month: int) -> Dict[str, Any]:
         """
         Balance total, ingresos y gastos del mes, y serie diaria interna.
