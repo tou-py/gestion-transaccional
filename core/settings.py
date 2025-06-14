@@ -37,7 +37,8 @@ PROJECT_APPS: list[str] = [
 THIRD_PARTY_APPS: list[str] = [
     'rest_framework',
     'drf_spectacular',
-    'drf_spectacular_sidecar'
+    'drf_spectacular_sidecar',
+    'rest_framework_extensions',
 ]
 
 INSTALLED_APPS: list[Any] = DJANGO_APPS + PROJECT_APPS + THIRD_PARTY_APPS

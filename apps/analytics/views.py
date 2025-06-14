@@ -3,6 +3,13 @@ from datetime import date
 from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework_extensions.cache.decorators import cache_response
+from rest_framework_extensions.key_constructor.bits import (
+    QueryParamsKeyBit,
+    UserKeyBit,
+    UniqueMethodIdKeyBit
+)
+from rest_framework_extensions.key_constructor.constructors import KeyConstructor
 
 from .serializers import (
     DailyBalanceSerializer,
@@ -11,8 +18,15 @@ from .serializers import (
 from .services.aggregates import TimeSeriesAggregate
 
 
+class AnalyticsCacheKeyConstructor(KeyConstructor):
+    unique_method_id = UniqueMethodIdKeyBit()
+    user = UserKeyBit()
+    query_params = QueryParamsKeyBit()
+
+
 class AnalyticsViewSet(viewsets.ViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    serializer_class = None
 
     @action(detail=False, methods=['get'], url_path='daily-series')
     def daily_series(self, request):
@@ -31,6 +45,7 @@ class AnalyticsViewSet(viewsets.ViewSet):
         serializer = DailyBalanceSerializer(data, many=True)
         return Response(serializer.data)
 
+    @cache_response(key_func=AnalyticsCacheKeyConstructor(), timeout=3600)
     @action(detail=False, methods=['get'], url_path='weekly-summary')
     def weekly_summary(self, request):
         try:
