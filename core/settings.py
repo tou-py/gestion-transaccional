@@ -31,6 +31,7 @@ DJANGO_APPS: list[str] = [
 PROJECT_APPS: list[str] = [
     'apps.accounts.apps.AccountsConfig',
     'apps.transactions.apps.TransactionsConfig',
+    'apps.analytics.apps.AnalyticsConfig',
 ]
 
 THIRD_PARTY_APPS: list[str] = [
